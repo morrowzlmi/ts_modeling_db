@@ -4,6 +4,7 @@ from ts_modeling_db.models import (
     Fold, FoldMetric, FoldForecast, FinalForecast
 )
 from sqlalchemy import and_, or_
+from sqlalchemy.orm import joinedload
 from datetime import date
 
 def get_experiment_by_id(experiment_id):
@@ -12,7 +13,10 @@ def get_experiment_by_id(experiment_id):
 
 def get_all_experiments():
     with get_session() as session:
-        return session.query(Experiment).order_by(Experiment.created_at.desc()).all()
+        return session.query(Experiment).options(
+            joinedload(Experiment.model_config),
+            joinedload(Experiment.eval_config)
+        ).order_by(Experiment.created_at.desc()).all()
 
 def get_model_config_by_hash(config_hash):
     with get_session() as session:

@@ -1,9 +1,8 @@
 from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Text
 from sqlalchemy.orm import relationship, declarative_base
+import datetime
 
 Base = declarative_base()
-
-# --- Core Tables ---
 
 class ModelConfiguration(Base):
     __tablename__ = "model_configurations"
@@ -15,8 +14,7 @@ class ModelConfiguration(Base):
     notes = Column(Text)
 
     parameters = relationship("ConfigParameter", back_populates="config")
-    experiments = relationship("Experiment", back_populates="config")
-
+    experiments = relationship("Experiment", back_populates="model_config")
 
 class ConfigParameter(Base):
     __tablename__ = "config_parameters"
@@ -28,7 +26,6 @@ class ConfigParameter(Base):
 
     config = relationship("ModelConfiguration", back_populates="parameters")
 
-
 class EvaluationConfig(Base):
     __tablename__ = "evaluation_configs"
 
@@ -36,10 +33,9 @@ class EvaluationConfig(Base):
     cv_type = Column(String)
     cv_horizon = Column(Integer)
     cv_folds = Column(Integer)
-    metrics = Column(String)  # comma-separated metric names
+    metrics = Column(String)  # Comma-separated list
 
     experiments = relationship("Experiment", back_populates="eval_config")
-
 
 class Experiment(Base):
     __tablename__ = "experiments"
@@ -48,16 +44,13 @@ class Experiment(Base):
     model_config_id = Column(Integer, ForeignKey("model_configurations.id"))
     eval_config_id = Column(Integer, ForeignKey("evaluation_configs.id"))
     target_variable = Column(String)
-    created_at = Column(Date)
+    created_at = Column(Date, default=datetime.date.today)
     notes = Column(Text)
 
-    config = relationship("ModelConfiguration", back_populates="experiments")
+    model_config = relationship("ModelConfiguration", back_populates="experiments")
     eval_config = relationship("EvaluationConfig", back_populates="experiments")
     folds = relationship("Fold", back_populates="experiment")
     final_forecasts = relationship("FinalForecast", back_populates="experiment")
-
-
-# --- Per-Fold Results ---
 
 class Fold(Base):
     __tablename__ = "folds"
@@ -73,7 +66,6 @@ class Fold(Base):
     metrics = relationship("FoldMetric", back_populates="fold")
     forecasts = relationship("FoldForecast", back_populates="fold")
 
-
 class FoldMetric(Base):
     __tablename__ = "fold_metrics"
 
@@ -83,7 +75,6 @@ class FoldMetric(Base):
     metric_value = Column(Float)
 
     fold = relationship("Fold", back_populates="metrics")
-
 
 class FoldForecast(Base):
     __tablename__ = "fold_forecasts"
@@ -95,9 +86,6 @@ class FoldForecast(Base):
     actual_value = Column(Float)
 
     fold = relationship("Fold", back_populates="forecasts")
-
-
-# --- Final Forecasts (non-CV) ---
 
 class FinalForecast(Base):
     __tablename__ = "final_forecasts"
