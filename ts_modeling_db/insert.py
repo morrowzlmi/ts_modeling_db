@@ -1,0 +1,109 @@
+from ts_modeling_db.models import (
+    ModelConfiguration, ConfigParameter, EvaluationConfig,
+    Experiment, Fold, FoldMetric, FoldForecast, FinalForecast
+)
+from ts_modeling_db.db import get_session
+from sqlalchemy.exc import IntegrityError
+from datetime import date
+import hashlib
+
+
+def insert_model_configuration(session, model_type: str, config_name: str, parameters: dict, notes: str = None):
+    # Hash config for uniqueness
+    hash_input = f"{model_type}-{sorted(parameters.items())}"
+    config_hash = hashlib.sha256(hash_input.encode()).hexdigest()
+
+    # Check for existing config
+    existing = session.query(ModelConfiguration).filter_by(config_hash=config_hash).first()
+    if existing:
+        return existing
+
+    config = ModelConfiguration(
+        model_type=model_type,
+        config_name=config_name,
+        config_hash=config_hash,
+        notes=notes
+    )
+    session.add(config)
+    session.flush()
+
+    for k, v in parameters.items():
+        param = ConfigParameter(
+            config_id=config.id,
+            param_name=k,
+            param_value=str(v)
+        )
+        session.add(param)
+
+    return config
+
+
+def insert_evaluation_config(session, cv_type: str, cv_horizon: int, cv_folds: int, metrics: list):
+    metrics_str = ",".join(metrics)
+    existing = session.query(EvaluationConfig).filter_by(
+        cv_type=cv_type, cv_horizon=cv_horizon, cv_folds=cv_folds, metrics=metrics_str
+    ).first()
+    if existing:
+        return existing
+
+    eval_config = EvaluationConfig(
+        cv_type=cv_type,
+        cv_horizon=cv_horizon,
+        cv_folds=cv_folds,
+        metrics=metrics_str
+    )
+    session.add(eval_config)
+    return eval_config
+
+
+def insert_experiment_results(session, *, model_type, config_name, parameters, eval_config,
+                               target_variable, folds_data, final_forecast_data=None, notes=None):
+    model_config = insert_model_configuration(session, model_type, config_name, parameters)
+    eval_conf = insert_evaluation_config(session, **eval_config)
+
+    experiment = Experiment(
+        model_config_id=model_config.id,
+        eval_config_id=eval_conf.id,
+        target_variable=target_variable,
+        created_at=date.today(),
+        notes=notes
+    )
+    session.add(experiment)
+    session.flush()
+
+    for fold_dict in folds_data:
+        fold = Fold(
+            experiment_id=experiment.id,
+            fold_number=fold_dict["fold_number"],
+            train_end_date=fold_dict["train_end_date"],
+            test_start_date=fold_dict["test_start_date"],
+            test_end_date=fold_dict["test_end_date"]
+        )
+        session.add(fold)
+        session.flush()
+
+        for m in fold_dict.get("metrics", []):
+            session.add(FoldMetric(
+                fold_id=fold.id,
+                metric_name=m["name"],
+                metric_value=m["value"]
+            ))
+
+        for f in fold_dict.get("forecasts", []):
+            session.add(FoldForecast(
+                fold_id=fold.id,
+                timestamp=f["timestamp"],
+                forecast_value=f["forecast"],
+                actual_value=f.get("actual")
+            ))
+
+    if final_forecast_data:
+        for row in final_forecast_data:
+            session.add(FinalForecast(
+                experiment_id=experiment.id,
+                timestamp=row["timestamp"],
+                forecast_value=row["forecast"],
+                actual_value=row.get("actual")
+            ))
+
+    return experiment
