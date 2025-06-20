@@ -8,9 +8,9 @@ from datetime import date
 import hashlib
 
 
-def insert_model_configuration(session, model_type: str, config_name: str, parameters: dict, notes: str = None):
+def insert_model_configuration(session, model_type: str, implementation: str, config_name: str, parameters: dict, notes: str = None):
     # Hash config for uniqueness
-    hash_input = f"{model_type}-{sorted(parameters.items())}"
+    hash_input = f"{model_type}-{implementation}-{sorted(parameters.items())}"
     config_hash = hashlib.sha256(hash_input.encode()).hexdigest()
 
     # Check for existing config
@@ -21,6 +21,7 @@ def insert_model_configuration(session, model_type: str, config_name: str, param
     config = ModelConfiguration(
         model_type=model_type,
         config_name=config_name,
+        implementation=implementation,
         config_hash=config_hash,
         notes=notes
     )
@@ -56,9 +57,9 @@ def insert_evaluation_config(session, cv_type: str, cv_horizon: int, cv_folds: i
     return eval_config
 
 
-def insert_experiment_results(session, *, model_type, config_name, parameters, eval_config,
+def insert_experiment_results(session, *, model_type, implementation, config_name, parameters, eval_config,
                                target_variable, folds_data, final_forecast_data=None, notes=None):
-    model_config = insert_model_configuration(session, model_type, config_name, parameters)
+    model_config = insert_model_configuration(session, model_type, implementation, config_name, parameters)
     eval_conf = insert_evaluation_config(session, **eval_config)
 
     experiment = Experiment(
@@ -107,3 +108,25 @@ def insert_experiment_results(session, *, model_type, config_name, parameters, e
             ))
 
     return experiment
+
+def insert_experiment_run(*, model_type, config_name, parameters, eval_config,
+                          target_variable, folds_data, final_forecast_data=None, notes=None):
+    """
+    Convenience wrapper for inserting a full modeling run in one call.
+    """
+    from ts_modeling_db.db import get_session
+
+    with get_session() as session:
+        experiment = insert_experiment_results(
+            session,
+            model_type=model_type,
+            config_name=config_name,
+            parameters=parameters,
+            eval_config=eval_config,
+            target_variable=target_variable,
+            folds_data=folds_data,
+            final_forecast_data=final_forecast_data,
+            notes=notes
+        )
+        print(f"Inserted experiment ID: {experiment.id}")
+        return experiment

@@ -9,6 +9,7 @@ class ModelConfiguration(Base):
 
     id = Column(Integer, primary_key=True)
     model_type = Column(String)
+    implementation = Column(String)  # e.g., "pmdarima", "Greykite", "statsmodels"
     config_name = Column(String)
     config_hash = Column(String, unique=True)
     notes = Column(Text)
@@ -33,7 +34,7 @@ class EvaluationConfig(Base):
     cv_type = Column(String)
     cv_horizon = Column(Integer)
     cv_folds = Column(Integer)
-    metrics = Column(String)  # Comma-separated list
+    metrics_spec = Column(String)  # Comma-separated list
 
     experiments = relationship("Experiment", back_populates="eval_config")
 
