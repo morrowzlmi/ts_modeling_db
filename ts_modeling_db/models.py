@@ -33,7 +33,6 @@ class EvaluationConfig(Base):
     id = Column(Integer, primary_key=True)
     cv_type = Column(String)
     cv_horizon = Column(Integer)
-    cv_folds = Column(Integer)
     metrics_spec = Column(String)  # Comma-separated list
 
     experiments = relationship("Experiment", back_populates="eval_config")
@@ -59,6 +58,7 @@ class Fold(Base):
     id = Column(Integer, primary_key=True)
     experiment_id = Column(Integer, ForeignKey("experiments.id"))
     fold_number = Column(Integer)
+    train_start_date = Column(Date)
     train_end_date = Column(Date)
     test_start_date = Column(Date)
     test_end_date = Column(Date)

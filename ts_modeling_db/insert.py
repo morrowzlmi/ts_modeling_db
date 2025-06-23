@@ -46,10 +46,10 @@ def insert_model_configuration(session, model_type: str, implementation: str, pa
     return config
 
 
-def insert_evaluation_config(session, cv_type: str, cv_horizon: int, cv_folds: int, metrics_spec: list):
+def insert_evaluation_config(session, cv_type: str, cv_horizon: int, metrics_spec: list):
     metrics_str = ",".join(metrics_spec)
     existing = session.query(EvaluationConfig).filter_by(
-        cv_type=cv_type, cv_horizon=cv_horizon, cv_folds=cv_folds, metrics_spec=metrics_str
+        cv_type=cv_type, cv_horizon=cv_horizon, metrics_spec=metrics_str
     ).first()
     if existing:
         return existing
@@ -57,15 +57,14 @@ def insert_evaluation_config(session, cv_type: str, cv_horizon: int, cv_folds: i
     eval_config = EvaluationConfig(
         cv_type=cv_type,
         cv_horizon=cv_horizon,
-        cv_folds=cv_folds,
         metrics_spec=metrics_str
     )
     session.add(eval_config)
     return eval_config
 
 
-def insert_experiment_results(session, *, model_type, implementation, parameters, eval_config,
-                               target_variable, folds_data, config_name = None, final_forecast_data=None, notes=None):
+def insert_experiment_results(session, *, model_type: str, implementation: str, parameters: dict, eval_config: dict,
+                               target_variable: str, folds_data: list, config_name: str = None, final_forecast_data: list = None, notes: str = None):
     model_config = insert_model_configuration(session, model_type, implementation, config_name, parameters)
     eval_conf = insert_evaluation_config(session, **eval_config)
 
@@ -79,10 +78,15 @@ def insert_experiment_results(session, *, model_type, implementation, parameters
     session.add(experiment)
     session.flush()
 
-    for fold_dict in folds_data:
+    for fold_dict, fold_indexer in enumerate(folds_data):
+        
+        negative_folds_count = -abs(len(folds_data))
+        fold_number = negative_folds_count + fold_indexer + 1
+
         fold = Fold(
             experiment_id=experiment.id,
-            fold_number=fold_dict["fold_number"],
+            fold_number=fold_number,
+            train_start_date=fold_dict["train_start_date"],
             train_end_date=fold_dict["train_end_date"],
             test_start_date=fold_dict["test_start_date"],
             test_end_date=fold_dict["test_end_date"]
@@ -116,8 +120,8 @@ def insert_experiment_results(session, *, model_type, implementation, parameters
 
     return experiment
 
-def insert_experiment_run(*, model_type, parameters, eval_config,
-                          target_variable, folds_data, config_name = None, final_forecast_data=None, notes=None):
+def insert_experiment_run(*, model_type: str, implementation: str, parameters: dict, eval_config: dict,
+                          target_variable: str, folds_data: list, config_name:str = None, final_forecast_data: list = None, notes: list = None):
     """
     Convenience wrapper for inserting a full modeling run in one call.
     """
@@ -127,6 +131,7 @@ def insert_experiment_run(*, model_type, parameters, eval_config,
         experiment = insert_experiment_results(
             session,
             model_type=model_type,
+            implementation=implementation,
             config_name=config_name,
             parameters=parameters,
             eval_config=eval_config,

@@ -1,11 +1,15 @@
 # utils.py
 from insert import insert_experiment_run
 
-def passport_pydict_insert (*args, **kwargs):
-    model = kwargs['model']
+def extract_folds_data_from_cvout(cvout_str: str):
+    evaluated_cvout_str = eval(cvout_str) # expected to evaluate to list of dicts
+    # for dict in list, store dict['timing'] in new list
+
+
+def passport_pydict_insert (model: dict, config: dict, cvout: str, *args, **kwargs):
     command = model['command']
     params = model['params']
-    config = kwargs['config']
+    agg_method = config['cross-valdation']['aggmethod']
     model_type = params['modelfam']
     implementation = 'passport_pydict'
     parameters = dict(p=params['pdq'][0],
@@ -18,17 +22,20 @@ def passport_pydict_insert (*args, **kwargs):
                       lmbda=params['lmbda'],
                       regressors=command[1:],
                       )
-    eval_config = dict(cv_type=config['cross-valdation']['type'],
-                       cv_horizon=config['cross-valdation']['testwindlen'],
-                       cv_folds=Column(Integer),
-                       metrics_spec=Column(String))
+    eval_config = dict(cv_type=config['cross-valdation']['type'], # str
+                       cv_horizon=int(config['cross-valdation']['testwindlen']), # int
+                       metrics_spec=[str(agg_method),'aggmae','aggmape','aggmedae','aggr2','aggrmse','mae','mape','medae','r2','rmse']) # list
     target_variable = command[0]
-    folds_data = args[5]
+    ####################################
+    folds_data = eval(cvout) # needs to be list of dictionaries, basically "constituents"
+    #############################
     if kwargs and 'config_name' in kwargs.keys:
         config_name = kwargs['config_name']
     else:
         config_name = None
+    ####################################
     final_forecast = args[6]
+    #############################
     if kwargs and 'notes' in kwargs.keys:
         notes = kwargs['notes']
     else:
