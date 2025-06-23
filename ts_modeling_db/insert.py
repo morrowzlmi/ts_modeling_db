@@ -6,9 +6,10 @@ from ts_modeling_db.db import get_session
 from sqlalchemy.exc import IntegrityError
 from datetime import date
 import hashlib
+import json
 
 
-def insert_model_configuration(session, model_type: str, implementation: str, config_name: str, parameters: dict, notes: str = None):
+def insert_model_configuration(session, model_type: str, implementation: str, parameters: dict, config_name: str = None, notes: str = None):
     # Hash config for uniqueness
     hash_input = f"{model_type}-{implementation}-{sorted(parameters.items())}"
     config_hash = hashlib.sha256(hash_input.encode()).hexdigest()
@@ -29,20 +30,26 @@ def insert_model_configuration(session, model_type: str, implementation: str, co
     session.flush()
 
     for k, v in parameters.items():
-        param = ConfigParameter(
-            config_id=config.id,
-            param_name=k,
-            param_value=str(v)
-        )
-        session.add(param)
+        # Serialize list/dict values to JSON
+        if isinstance(v, (list, dict)):
+            v_str = json.dumps(v)
+        else:
+            v_str = str(v)
+
+    param = ConfigParameter(
+        config_id=config.id,
+        param_name=k,
+        param_value=v_str
+    )
+    session.add(param)
 
     return config
 
 
-def insert_evaluation_config(session, cv_type: str, cv_horizon: int, cv_folds: int, metrics: list):
-    metrics_str = ",".join(metrics)
+def insert_evaluation_config(session, cv_type: str, cv_horizon: int, cv_folds: int, metrics_spec: list):
+    metrics_str = ",".join(metrics_spec)
     existing = session.query(EvaluationConfig).filter_by(
-        cv_type=cv_type, cv_horizon=cv_horizon, cv_folds=cv_folds, metrics=metrics_str
+        cv_type=cv_type, cv_horizon=cv_horizon, cv_folds=cv_folds, metrics_spec=metrics_str
     ).first()
     if existing:
         return existing
@@ -51,14 +58,14 @@ def insert_evaluation_config(session, cv_type: str, cv_horizon: int, cv_folds: i
         cv_type=cv_type,
         cv_horizon=cv_horizon,
         cv_folds=cv_folds,
-        metrics=metrics_str
+        metrics_spec=metrics_str
     )
     session.add(eval_config)
     return eval_config
 
 
-def insert_experiment_results(session, *, model_type, implementation, config_name, parameters, eval_config,
-                               target_variable, folds_data, final_forecast_data=None, notes=None):
+def insert_experiment_results(session, *, model_type, implementation, parameters, eval_config,
+                               target_variable, folds_data, config_name = None, final_forecast_data=None, notes=None):
     model_config = insert_model_configuration(session, model_type, implementation, config_name, parameters)
     eval_conf = insert_evaluation_config(session, **eval_config)
 
@@ -109,8 +116,8 @@ def insert_experiment_results(session, *, model_type, implementation, config_nam
 
     return experiment
 
-def insert_experiment_run(*, model_type, config_name, parameters, eval_config,
-                          target_variable, folds_data, final_forecast_data=None, notes=None):
+def insert_experiment_run(*, model_type, parameters, eval_config,
+                          target_variable, folds_data, config_name = None, final_forecast_data=None, notes=None):
     """
     Convenience wrapper for inserting a full modeling run in one call.
     """

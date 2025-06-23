@@ -1,16 +1,47 @@
 # utils.py
-def passport_pydict_insert (*args):
-    model_type = args[0]
-    implementation = args[8]
-    config_name = args[1]
-    parameters = args[2]
-    eval_config = args[3]
-    target_variable = args[4]
-    folds_data = args[5]
-    final_forecast = args[6]
-    notes = args[7]
-    return
+from insert import insert_experiment_run
 
-def insert_experiment_run(*, model_type, implementation, config_name, parameters, eval_config,
-                          target_variable, folds_data, final_forecast_data=None, notes=None):
+def passport_pydict_insert (*args, **kwargs):
+    model = kwargs['model']
+    command = model['command']
+    params = model['params']
+    config = kwargs['config']
+    model_type = params['modelfam']
+    implementation = 'passport_pydict'
+    parameters = dict(p=params['pdq'][0],
+                      d=params['pdq'][1],
+                      q=params['pdq'][2],
+                      sp=params['PDQS'][0],
+                      sd=params['PDQS'][1],
+                      sq=params['PDQS'][2],
+                      ss=params['PDQS'][3],
+                      lmbda=params['lmbda'],
+                      regressors=command[1:],
+                      )
+    eval_config = dict(cv_type=config['cross-valdation']['type'],
+                       cv_horizon=config['cross-valdation']['testwindlen'],
+                       cv_folds=Column(Integer),
+                       metrics_spec=Column(String))
+    target_variable = command[0]
+    folds_data = args[5]
+    if kwargs and 'config_name' in kwargs.keys:
+        config_name = kwargs['config_name']
+    else:
+        config_name = None
+    final_forecast = args[6]
+    if kwargs and 'notes' in kwargs.keys:
+        notes = kwargs['notes']
+    else:
+        notes = None            
+    
+    insert_experiment_run(model_type=model_type, 
+                          implementation=implementation, 
+                          parameters=parameters, 
+                          eval_config=eval_config, 
+                          target_variable=target_variable, 
+                          folds_data=folds_data, 
+                          config_name = None, 
+                          final_forecast_data=None, 
+                          notes=None)
+
     return

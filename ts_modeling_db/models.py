@@ -10,7 +10,7 @@ class ModelConfiguration(Base):
     id = Column(Integer, primary_key=True)
     model_type = Column(String)
     implementation = Column(String)  # e.g., "pmdarima", "Greykite", "statsmodels"
-    config_name = Column(String)
+    config_name = Column(String, nullable=True)
     config_hash = Column(String, unique=True)
     notes = Column(Text)
 
