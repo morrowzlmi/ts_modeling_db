@@ -1,10 +1,17 @@
 # utils.py
 from insert import insert_experiment_run
 
-def extract_folds_data_from_cvout(cvout_str: str):
-    evaluated_cvout_str = eval(cvout_str) # expected to evaluate to list of dicts
-    # for dict in list, store dict['timing'] in new list
-
+def extract_fold_data_from_cvout(input_cvout_str: str) -> list[dict]:
+    output_list = []
+    cvout_list = eval(input_cvout_str)
+    for obj in cvout_list:
+        output_list.append({
+            "train_start_date": obj['timing'][0],
+            "train_end_date": obj['timing'][1],
+            "test_start_date": obj['timing'][2],
+            "test_end_date": obj['timing'][3]
+            })
+    return output_list
 
 def passport_pydict_insert (model: dict, config: dict, cvout: str, *args, **kwargs):
     command = model['command']
@@ -26,9 +33,7 @@ def passport_pydict_insert (model: dict, config: dict, cvout: str, *args, **kwar
                        cv_horizon=int(config['cross-valdation']['testwindlen']), # int
                        metrics_spec=[str(agg_method),'aggmae','aggmape','aggmedae','aggr2','aggrmse','mae','mape','medae','r2','rmse']) # list
     target_variable = command[0]
-    ####################################
-    folds_data = eval(cvout) # needs to be list of dictionaries, basically "constituents"
-    #############################
+    folds_data = extract_fold_data_from_cvout(cvout) # needs to be list of dictionaries, basically "constituents"
     if kwargs and 'config_name' in kwargs.keys:
         config_name = kwargs['config_name']
     else:
