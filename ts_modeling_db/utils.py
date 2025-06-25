@@ -1,17 +1,19 @@
 # utils.py
+import datetime
 from insert import insert_experiment_run
 
 def extract_fold_data_from_cvout(input_cvout_str: str) -> list[dict]:
-    output_list = []
+    output_fold_data_list = []
     cvout_list = eval(input_cvout_str)
     for obj in cvout_list:
-        output_list.append({
-            "train_start_date": obj['timing'][0],
-            "train_end_date": obj['timing'][1],
-            "test_start_date": obj['timing'][2],
-            "test_end_date": obj['timing'][3]
-            })
-    return output_list
+        train_start, train_end, test_start, test_end = obj['timing']
+        output_fold_data_list.append({
+            "train_start_date": datetime.strptime(train_start, "%Y-%m-%d").date(),
+            "train_end_date": datetime.strptime(train_end, "%Y-%m-%d").date(),
+            "test_start_date": datetime.strptime(test_start, "%Y-%m-%d").date(),
+            "test_end_date": datetime.strptime(test_end, "%Y-%m-%d").date()
+        })
+    return output_fold_data_list
 
 def passport_pydict_insert (model: dict, config: dict, cvout: str, *args, **kwargs):
     command = model['command']

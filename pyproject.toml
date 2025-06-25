@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ts_modeling_db"
+version = "0.1.0"
+dependencies = [
+    "sqlalchemy",
+    "python-dotenv"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ts_modeling_db"]
