@@ -14,7 +14,7 @@ def extract_fold_data_from_cvout(input_cvout: list[dict]) -> list[dict]:
         })
     return output_fold_data_list
 
-def passport_pydict_insert (model: dict, config: dict, cvout: str, *args, **kwargs):
+def passport_pydict_insert (model: dict, config: dict, cvout: str, **kwargs):
     command = model['command']
     params = model['params']
     agg_method = config['cross-validation']['aggmethod']
@@ -28,10 +28,13 @@ def passport_pydict_insert (model: dict, config: dict, cvout: str, *args, **kwar
                       sq=params['PDQS'][2],
                       ss=params['PDQS'][3],
                       lmbda=params['lmbda'],
-                      regressors=command[1:],
+                      regressors=command[1:]
                       )
-    eval_config = dict(cv_type=config['cross-validation']['type'], # str
-                       cv_horizon=int(config['cross-validation']['testwindlen']), # int
+    stringified_parameters = {key: str(value) for key, value in parameters.items()}
+    # additions to eval_config need to be added in models.py and insert.py
+    eval_config = dict(cv_type=config['cross-validation']['type'],
+                       cv_horizon=int(config['cross-validation']['testwindlen']),
+                       gap=int(config['cross-validation']['gap']),
                        metrics_spec=[str(agg_method),'aggmae','aggmape','aggmedae','aggr2','aggrmse','mae','mape','medae','r2','rmse']) # list
     target_variable = command[0]
     folds_data = extract_fold_data_from_cvout(input_cvout=cvout)
@@ -40,7 +43,7 @@ def passport_pydict_insert (model: dict, config: dict, cvout: str, *args, **kwar
     
     insert_experiment_run(model_type=model_type, 
                           implementation=implementation, 
-                          parameters=parameters, 
+                          parameters=stringified_parameters, 
                           eval_config=eval_config, 
                           target_variable=target_variable, 
                           folds_data=folds_data, 

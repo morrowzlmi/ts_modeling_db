@@ -36,17 +36,18 @@ def insert_model_configuration(session, *, model_type: str, implementation: str,
         else:
             v_str = str(v)
 
-    param = ConfigParameter(
-        config_id=config.id,
-        param_name=k,
-        param_value=v_str
-    )
-    session.add(param)
+        param = ConfigParameter(
+            config_id=config.id,
+            param_name=k,
+            param_value=v_str
+        )
+        session.add(param)
+        session.flush()
 
     return config
 
 
-def insert_evaluation_config(session, *, cv_type: str, cv_horizon: int, metrics_spec: list):
+def insert_evaluation_config(session, *, cv_type: str, cv_horizon: int, gap: int, metrics_spec: list):
     metrics_str = ",".join(metrics_spec)
     existing = session.query(EvaluationConfig).filter_by(
         cv_type=cv_type, cv_horizon=cv_horizon, metrics_spec=metrics_str
@@ -57,6 +58,7 @@ def insert_evaluation_config(session, *, cv_type: str, cv_horizon: int, metrics_
     eval_config = EvaluationConfig(
         cv_type=cv_type,
         cv_horizon=cv_horizon,
+        gap=gap,
         metrics_spec=metrics_str
     )
     session.add(eval_config)

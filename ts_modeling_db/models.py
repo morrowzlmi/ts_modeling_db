@@ -33,6 +33,7 @@ class EvaluationConfig(Base):
     id = Column(Integer, primary_key=True)
     cv_type = Column(String)
     cv_horizon = Column(Integer)
+    gap = Column(Integer)
     metrics_spec = Column(String)  # Comma-separated list
 
     experiments = relationship("Experiment", back_populates="eval_config")
