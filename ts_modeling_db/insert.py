@@ -9,7 +9,7 @@ import hashlib
 import json
 
 
-def insert_model_configuration(session, model_type: str, implementation: str, parameters: dict, config_name: str = None, notes: str = None):
+def insert_model_configuration(session, *, model_type: str, implementation: str, parameters: dict, config_name: str = None, notes: str = None):
     # Hash config for uniqueness
     hash_input = f"{model_type}-{implementation}-{sorted(parameters.items())}"
     config_hash = hashlib.sha256(hash_input.encode()).hexdigest()
@@ -46,7 +46,7 @@ def insert_model_configuration(session, model_type: str, implementation: str, pa
     return config
 
 
-def insert_evaluation_config(session, cv_type: str, cv_horizon: int, metrics_spec: list):
+def insert_evaluation_config(session, *, cv_type: str, cv_horizon: int, metrics_spec: list):
     metrics_str = ",".join(metrics_spec)
     existing = session.query(EvaluationConfig).filter_by(
         cv_type=cv_type, cv_horizon=cv_horizon, metrics_spec=metrics_str
@@ -65,7 +65,13 @@ def insert_evaluation_config(session, cv_type: str, cv_horizon: int, metrics_spe
 
 def insert_experiment_results(session, *, model_type: str, implementation: str, parameters: dict, eval_config: dict,
                                target_variable: str, folds_data: list, config_name: str = None, final_forecast_data: list = None, notes: str = None):
-    model_config = insert_model_configuration(session, model_type, implementation, config_name, parameters)
+    model_config = insert_model_configuration(
+        session=session,
+        model_type=model_type,
+        implementation=implementation,
+        config_name=config_name,
+        parameters=parameters
+        )
     eval_conf = insert_evaluation_config(session, **eval_config)
 
     experiment = Experiment(
@@ -78,7 +84,7 @@ def insert_experiment_results(session, *, model_type: str, implementation: str, 
     session.add(experiment)
     session.flush()
 
-    for fold_dict, fold_indexer in enumerate(folds_data):
+    for fold_indexer, fold_dict in enumerate(folds_data):
         
         negative_folds_count = -abs(len(folds_data))
         fold_number = negative_folds_count + fold_indexer + 1

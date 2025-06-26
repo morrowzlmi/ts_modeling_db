@@ -5,9 +5,8 @@ import shutil
 import sys
 from datetime import datetime
 from sqlalchemy import create_engine
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 from ts_modeling_db.models import Base
-
 
 def drop_database(create_backup=True):
     # Load .env and get DATABASE_URL

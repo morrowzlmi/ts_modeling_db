@@ -1,11 +1,14 @@
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
 # Load environment variables from .env
-load_dotenv()
-
+print("Working directory:", os.getcwd())
+dotenv_file = find_dotenv(usecwd=True)
+print("Found .env file at:", dotenv_file)
+load_dotenv(dotenv_file)
+print("Loaded DATABASE_URL:", os.getenv("DATABASE_URL"))
 # Default to an absolute SQLite path if DATABASE_URL is not specified
 DEFAULT_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "ts_modeling.db"))
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DEFAULT_DB_PATH}")
