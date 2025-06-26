@@ -146,5 +146,6 @@ def insert_experiment_run(*, model_type: str, implementation: str, parameters: d
             final_forecast_data=final_forecast_data,
             notes=notes
         )
+        session.commit()
         print(f"Inserted experiment ID: {experiment.id}")
         return experiment
