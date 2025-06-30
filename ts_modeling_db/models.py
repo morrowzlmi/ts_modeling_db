@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, Date, ForeignKey, Text, UniqueConstraint
 from sqlalchemy.orm import relationship, declarative_base
 import datetime
 
@@ -14,7 +14,7 @@ class ModelConfiguration(Base):
     config_hash = Column(String, unique=True)
     notes = Column(Text)
 
-    parameters = relationship("ConfigParameter", back_populates="config")
+    parameters = relationship("ConfigParameter", back_populates="config", cascade="all, delete-orphan")
     experiments = relationship("Experiment", back_populates="model_config")
 
 class ConfigParameter(Base):
@@ -26,6 +26,10 @@ class ConfigParameter(Base):
     param_value = Column(String)
 
     config = relationship("ModelConfiguration", back_populates="parameters")
+
+    __table_args__ = (
+        UniqueConstraint('config_id', 'param_name', 'param_value', name='uq_param_unique'),
+    )
 
 class EvaluationConfig(Base):
     __tablename__ = "evaluation_configs"
@@ -53,6 +57,9 @@ class Experiment(Base):
     folds = relationship("Fold", back_populates="experiment")
     final_forecasts = relationship("FinalForecast", back_populates="experiment")
 
+    __table_args__ = (
+        UniqueConstraint('model_config_id','eval_config_id','target_variable', name='uq_experiment_unique'),
+    )
 class Fold(Base):
     __tablename__ = "folds"
 

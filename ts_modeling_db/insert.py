@@ -30,19 +30,21 @@ def insert_model_configuration(session, *, model_type: str, implementation: str,
     session.flush()
 
     for k, v in parameters.items():
-        # Serialize list/dict values to JSON
-        if isinstance(v, (list, dict)):
-            v_str = json.dumps(v)
+        if k == "regressors":
+            for reg in v.split():
+                param = ConfigParameter(
+                    config_id=config.id,
+                    param_name="regressor",
+                    param_value=str(reg)
+                )
+                session.add(param)
         else:
-            v_str = str(v)
-
-        param = ConfigParameter(
-            config_id=config.id,
-            param_name=k,
-            param_value=v_str
-        )
-        session.add(param)
-        session.flush()
+            param = ConfigParameter(
+                config_id=config.id,
+                param_name=k,
+                param_value=json.dumps(v) if isinstance(v, (list, dict)) else str(v)
+            )
+            session.add(param)
 
     return config
 
@@ -62,6 +64,7 @@ def insert_evaluation_config(session, *, cv_type: str, cv_horizon: int, gap: int
         metrics_spec=metrics_str
     )
     session.add(eval_config)
+    session.flush()
     return eval_config
 
 

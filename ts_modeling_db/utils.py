@@ -28,13 +28,12 @@ def passport_pydict_insert (model: dict, config: dict, cvout: str, **kwargs):
                       sq=params['PDQS'][2],
                       ss=params['PDQS'][3],
                       lmbda=params['lmbda'],
-                      regressors=command[1:]
+                      regressors=command[1]
                       )
-    stringified_parameters = {key: str(value) for key, value in parameters.items()}
     # additions to eval_config need to be added in models.py and insert.py
     eval_config = dict(cv_type=config['cross-validation']['type'],
                        cv_horizon=int(config['cross-validation']['testwindlen']),
-                       gap=int(config['cross-validation']['gap']),
+                       gap=int(params['gap']),
                        metrics_spec=[str(agg_method),'aggmae','aggmape','aggmedae','aggr2','aggrmse','mae','mape','medae','r2','rmse']) # list
     target_variable = command[0]
     folds_data = extract_fold_data_from_cvout(input_cvout=cvout)
@@ -43,7 +42,7 @@ def passport_pydict_insert (model: dict, config: dict, cvout: str, **kwargs):
     
     insert_experiment_run(model_type=model_type, 
                           implementation=implementation, 
-                          parameters=stringified_parameters, 
+                          parameters=parameters, 
                           eval_config=eval_config, 
                           target_variable=target_variable, 
                           folds_data=folds_data, 
